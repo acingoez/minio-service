@@ -12,12 +12,11 @@ MinIO Object Storage Service für Dokumenten-Management.
 ## Konfiguration
 
 ### Ports
-- **API Port**: 9000 (extern und intern)
-- **Console Port**: 9001 (extern und intern)
+- **API Port**: ${MINIO_PORT} (Standard: 40002, extern und intern)
 
 ### Zugangsdaten
-- **Username**: minioadmin
-- **Password**: minioadmin123
+- **Username**: ${MINIO_ROOT_USER} (Standard: minioadmin)
+- **Password**: ${MINIO_ROOT_PASSWORD} (Standard: minioadmin123)
 
 ### Service-Name
 - **Container**: minio-service
@@ -26,6 +25,9 @@ MinIO Object Storage Service für Dokumenten-Management.
 ## Installation
 
 ```bash
+# Environment-Datei erstellen
+cp env.example .env
+
 # MinIO Service starten
 docker-compose up -d
 
@@ -38,29 +40,24 @@ docker-compose logs -f minio
 
 ## Verwendung
 
-### Web Console
-- **URL**: http://localhost:9001
-- **Login**: minioadmin / minioadmin123
-
 ### API Zugriff
-- **Endpoint**: http://localhost:9000
+- **Endpoint**: http://localhost:${MINIO_PORT}
 - **S3-kompatibel**: Alle S3-Clients funktionieren
 
 ### Service-Integration
 ```javascript
 // Von anderen Services im pg-database-network
-const minioEndpoint = 'http://minio-service:9000';
-const accessKey = 'minioadmin';
-const secretKey = 'minioadmin123';
+const minioEndpoint = `http://minio-service:${process.env.MINIO_PORT || '40002'}`;
+const accessKey = process.env.MINIO_ROOT_USER || 'minioadmin';
+const secretKey = process.env.MINIO_ROOT_PASSWORD || 'minioadmin123';
 ```
 
 ## Bucket-Erstellung
 
 Nach dem Start müssen Buckets erstellt werden:
 
-1. **Web Console öffnen**: http://localhost:9001
-2. **Login**: minioadmin / minioadmin123
-3. **Bucket erstellen**: z.B. "documents"
+1. **API verwenden**: MinIO API auf Port ${MINIO_PORT}
+2. **Bucket erstellen**: z.B. "documents" über API oder S3-Client
 
 ## Integration mit Document-Service
 
@@ -72,10 +69,10 @@ const Minio = require('minio');
 
 const minioClient = new Minio.Client({
   endPoint: 'minio-service',
-  port: 9000,
+  port: parseInt(process.env.MINIO_PORT || '40002'),
   useSSL: false,
-  accessKey: 'minioadmin',
-  secretKey: 'minioadmin123'
+  accessKey: process.env.MINIO_ROOT_USER || 'minioadmin',
+  secretKey: process.env.MINIO_ROOT_PASSWORD || 'minioadmin123'
 });
 ```
 
@@ -95,9 +92,8 @@ docker network inspect pg-database-network
 
 ### Port-Konflikte
 ```bash
-# Andere Services auf Port 9000/9001 stoppen
-lsof -i :9000
-lsof -i :9001
+# Andere Services auf Port ${MINIO_PORT} stoppen
+lsof -i :${MINIO_PORT:-40002}
 ```
 
 ### Daten-Persistierung
